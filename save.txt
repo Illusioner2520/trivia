@@ -1,0 +1,1 @@
+[{'guild': 1242291003818246256, 'users': [{'user': 715380010902356029, 'correct': 6, 'incorrect': 4, 'name': 'illusioner2520'}, {'user': 1231728255510249552, 'correct': 0, 'incorrect': 1, 'name': 'illusioneralt'}], 'channel': 1242291003818246259, 'last_date': '2024-11-07', 'previous_poll': 1304273179912441887, 'what_users_said': {715380010902356029: 'Solaris OS'}}]
