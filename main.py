@@ -60,7 +60,7 @@ class DailyQuestion(discord.ui.View):
             self.add_item(button)
 
 @bot.slash_command(name="leaderboard",description="Display a leaderboard")
-@option("leaderboard",description="Leaderboard type",choices=["Correct","Incorrect","Percentage","Streak"])
+@option("leaderboard",description="Leaderboard type",choices=["Correct","Incorrect","Percentage","Current Streak","Longest Streak"])
 async def leaderboard(ctx,leaderboard):
     embed = await new_embed()
     embed.description = "Leaderboard for `" + ctx.guild.name + "` (" + leaderboard + ")"
@@ -71,13 +71,16 @@ async def leaderboard(ctx,leaderboard):
         us.sort(key=si)
     elif leaderboard == "Percentage":
         us.sort(key=sp)
-    elif leaderboard == "Streak":
+    elif leaderboard == "Current Streak":
         us.sort(key=ss)
+    elif leaderboard == "Longest Streak":
+        us.sort(key=sl)
     for v in range(0,len(us)):
         if us[v]["name"] == "Unknown User":
             continue
         t = str(us[v]["correct"] if leaderboard == "Correct" else us[v]["incorrect"])
-        t = str(us[v]["streak"]) if leaderboard == "Streak" else t
+        t = str(us[v]["streak"]) if leaderboard == "Current Streak" else t
+        t = str(us[v]["longest_streak"]) if leaderboard == "Longest Streak" else t
         if leaderboard == "Percentage":
             t = str(round(us[v]["correct"] / (us[v]["correct"] + us[v]["incorrect"]) * 100,2)) + "%"
         embed.description += "\n**" + str(v + 1) + ".** " + us[v]["name"] + ": **" + t + "**"
@@ -89,6 +92,8 @@ def si(a):
   return -(a["incorrect"])
 def ss(a):
   return -(a["streak"])
+def sl(a):
+  return -(a["longest_streak"])
 def sp(a):
   if (a["name"] == "Unknown User"):
       return 0
@@ -109,7 +114,7 @@ async def process_day(d):
     if d['previous_poll'] != 0 and channel and d['last_date'] == str(date.today() - timedelta(days=1)):
         try:
             message = (await channel.fetch_message(d['previous_poll']))
-            max = len(d['what_users_said'])
+            maxl = len(d['what_users_said'])
             gotit = 0
             correct_user_list = []
             answer = globals()['questions'][str(date.today() - timedelta(days=1))]['correct_answer']
@@ -118,19 +123,21 @@ async def process_day(d):
             for u in d['what_users_said']:
                 if d['what_users_said'][u]["val"] == answer:
                     gotit += 1
+                    new_streak = await get_user_value(d['guild'],u,"streak") + 1
                     correct_user_list.append(" **" + str(d['what_users_said'][u]["name"]) + "**")
                     await set_user_value(d['guild'],u,"correct",await get_user_value(d['guild'],u,"correct") + 1)
-                    await set_user_value(d['guild'],u,"streak",await get_user_value(d['guild'],u,"streak") + 1)
+                    await set_user_value(d['guild'],u,"streak",new_streak)
+                    await set_user_value(d['guild'],u,"longest_streak",max(new_streak,await get_user_value(d['guild'],u,"longest_streak")))
                     dontclearstreak.append(u)
                 else:
                     await set_user_value(d['guild'],u,"incorrect",await get_user_value(d['guild'],u,"incorrect") + 1)
             for u in d['users']:
                 if not u['user'] in dontclearstreak:
                     await set_user_value(d['guild'],u['user'],"streak",0)
-            percent = gotit / max * 100 if max != 0 else 0
+            percent = gotit / maxl * 100 if maxl != 0 else 0
             percent = round(percent,2)
             gjt = "\nGood job to" + ",".join(correct_user_list) if len(correct_user_list) > 0 else ""
-            msg = "The correct answer was " + letter + ": " + answer + "!\n**" + str(percent) + "%** got it! **(" + str(gotit) + "/" + str(max) + ")**" + gjt
+            msg = "The correct answer was " + letter + ": " + answer + "!\n**" + str(percent) + "%** got it! **(" + str(gotit) + "/" + str(maxl) + ")**" + gjt
             await set_value(d['guild'],"what_users_said",{})
             embed = await new_embed()
             embed.description = msg
@@ -217,11 +224,12 @@ async def user(ctx,user):
     i = await get_user_value(ctx.guild.id,u.id,"incorrect")
     c = await get_user_value(ctx.guild.id,u.id,"correct")
     s = await get_user_value(ctx.guild.id,u.id,"streak")
+    l = await get_user_value(ctx.guild.id,u.id,"longest_streak")
     try:
         p = round(c / (i + c) * 100,2)
     except Exception as e:
         p = None
-    embed.description = "**User data for " + u.name + ":**\nCorrect: **" + str(c) + "**\nIncorrect: **" + str(i) + "**\nCurrent Streak: **" + str(s) + "**\nPercentage: **" + str(p) + "%**"
+    embed.description = "**User data for " + u.name + ":**\nCorrect: **" + str(c) + "**\nIncorrect: **" + str(i) + "**\nCurrent Streak: **" + str(s) + "**\nLongest Streak: **" + str(l) + "**\nPercentage: **" + str(p) + "%**"
     await ctx.respond(embed=embed)
     
 
@@ -232,11 +240,12 @@ async def user_data(ctx, user: discord.User):
     i = await get_user_value(ctx.guild.id,u.id,"incorrect")
     c = await get_user_value(ctx.guild.id,u.id,"correct")
     s = await get_user_value(ctx.guild.id,u.id,"streak")
+    l = await get_user_value(ctx.guild.id,u.id,"longest_streak")
     try:
         p = round(c / (i + c) * 100,2)
     except Exception as e:
         p = None
-    embed.description = "**User data for " + u.name + ":**\nCorrect: **" + str(c) + "**\nIncorrect: **" + str(i) + "**\nCurrent Streak: **" + str(s) + "**\nPercentage: **" + str(p) + "%**"
+    embed.description = "**User data for " + u.name + ":**\nCorrect: **" + str(c) + "**\nIncorrect: **" + str(i) + "**\nCurrent Streak: **" + str(s) + "**\nLongest Streak: **" + str(l) + "**\nPercentage: **" + str(p) + "%**"
     await ctx.respond(embed=embed)
 
 async def set_user_trivia_response(g,u,w,n):
@@ -254,6 +263,7 @@ async def create_user(g,u,a,b):
     dict['correct'] = 0
     dict['incorrect'] = 0
     dict['streak'] = 0
+    dict['longest_streak'] = 0
     dict['name'] = "Unknown User"
     if a is not None:
         dict[a] = b
