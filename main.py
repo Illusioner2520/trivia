@@ -60,7 +60,7 @@ class DailyQuestion(discord.ui.View):
             self.add_item(button)
 
 @bot.slash_command(name="leaderboard",description="Display a leaderboard")
-@option("leaderboard",description="Leaderboard type",choices=["Correct","Incorrect","Percentage"])
+@option("leaderboard",description="Leaderboard type",choices=["Correct","Incorrect","Percentage","Streak"])
 async def leaderboard(ctx,leaderboard):
     embed = await new_embed()
     embed.description = "Leaderboard for `" + ctx.guild.name + "` (" + leaderboard + ")"
@@ -71,10 +71,13 @@ async def leaderboard(ctx,leaderboard):
         us.sort(key=si)
     elif leaderboard == "Percentage":
         us.sort(key=sp)
+    elif leaderboard == "Streak":
+        us.sort(key=ss)
     for v in range(0,len(us)):
         if us[v]["name"] == "Unknown User":
             continue
         t = str(us[v]["correct"] if leaderboard == "Correct" else us[v]["incorrect"])
+        t = str(us[v]["streak"]) if leaderboard == "Streak" else t
         if leaderboard == "Percentage":
             t = str(round(us[v]["correct"] / (us[v]["correct"] + us[v]["incorrect"]) * 100,2)) + "%"
         embed.description += "\n**" + str(v + 1) + ".** " + us[v]["name"] + ": **" + t + "**"
@@ -84,6 +87,8 @@ def sc(a):
   return -(a["correct"])
 def si(a):
   return -(a["incorrect"])
+def ss(a):
+  return -(a["streak"])
 def sp(a):
   if (a["name"] == "Unknown User"):
       return 0
@@ -109,13 +114,19 @@ async def process_day(d):
             correct_user_list = []
             answer = globals()['questions'][str(date.today() - timedelta(days=1))]['correct_answer']
             letter = ["A","B","C","D","E"][globals()['questions'][str(date.today() - timedelta(days=1))]['answers'].index(answer)]
+            dontclearstreak = []
             for u in d['what_users_said']:
                 if d['what_users_said'][u]["val"] == answer:
                     gotit += 1
                     correct_user_list.append(" **" + str(d['what_users_said'][u]["name"]) + "**")
                     await set_user_value(d['guild'],u,"correct",await get_user_value(d['guild'],u,"correct") + 1)
+                    await set_user_value(d['guild'],u,"streak",await get_user_value(d['guild'],u,"streak") + 1)
+                    dontclearstreak.append(u)
                 else:
                     await set_user_value(d['guild'],u,"incorrect",await get_user_value(d['guild'],u,"incorrect") + 1)
+            for u in d['users']:
+                if not u['user'] in dontclearstreak:
+                    await set_user_value(d['guild'],u['user'],"streak",0)
             percent = gotit / max * 100 if max != 0 else 0
             percent = round(percent,2)
             gjt = "\nGood job to" + ",".join(correct_user_list) if len(correct_user_list) > 0 else ""
@@ -205,11 +216,12 @@ async def user(ctx,user):
     u = user if user is not None else ctx.author
     i = await get_user_value(ctx.guild.id,u.id,"incorrect")
     c = await get_user_value(ctx.guild.id,u.id,"correct")
+    s = await get_user_value(ctx.guild.id,u.id,"streak")
     try:
         p = round(c / (i + c) * 100,2)
     except Exception as e:
         p = None
-    embed.description = "**User data for " + u.name + ":**\nCorrect: **" + str(c) + "**\nIncorrect: **" + str(i) + "**\nPercentage: **" + str(p) + "%**"
+    embed.description = "**User data for " + u.name + ":**\nCorrect: **" + str(c) + "**\nIncorrect: **" + str(i) + "**\nCurrent Streak: **" + str(s) + "**\nPercentage: **" + str(p) + "%**"
     await ctx.respond(embed=embed)
     
 
@@ -219,11 +231,12 @@ async def user_data(ctx, user: discord.User):
     u = user
     i = await get_user_value(ctx.guild.id,u.id,"incorrect")
     c = await get_user_value(ctx.guild.id,u.id,"correct")
+    s = await get_user_value(ctx.guild.id,u.id,"streak")
     try:
         p = round(c / (i + c) * 100,2)
     except Exception as e:
         p = None
-    embed.description = "**User data for " + u.name + ":**\nCorrect: **" + str(c) + "**\nIncorrect: **" + str(i) + "**\nPercentage: **" + str(p) + "%**"
+    embed.description = "**User data for " + u.name + ":**\nCorrect: **" + str(c) + "**\nIncorrect: **" + str(i) + "**\nCurrent Streak: **" + str(s) + "**\nPercentage: **" + str(p) + "%**"
     await ctx.respond(embed=embed)
 
 async def set_user_trivia_response(g,u,w,n):
@@ -240,6 +253,7 @@ async def create_user(g,u,a,b):
     dict['user'] = u
     dict['correct'] = 0
     dict['incorrect'] = 0
+    dict['streak'] = 0
     dict['name'] = "Unknown User"
     if a is not None:
         dict[a] = b
