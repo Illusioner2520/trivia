@@ -44,14 +44,16 @@ class DailyQuestion(discord.ui.View):
                 if interaction.message.id != await get_value(interaction.guild_id,"previous_poll"):
                     await interaction.response.send_message("That is not the current trivia question.",ephemeral=True)
                     return
-                r = await get_user_trivia_response(interaction.guild_id,interaction.user.id)
+                r = (await get_user_trivia_response(interaction.guild_id,interaction.user.id))
+                if r != None:
+                    r = r['val']
                 if r == None:
                     await interaction.response.send_message("**" + interaction.custom_id + "** is now selected as your answer.",ephemeral=True)
                 elif r == interaction.custom_id:
                     await interaction.response.send_message("**" + interaction.custom_id + "** was already selected as your answer. (And still is)",ephemeral=True)
                 else:
                     await interaction.response.send_message("**" + interaction.custom_id + "** is now selected as your answer (Replacing your previous answer of **" + r + "**).",ephemeral=True)
-                await set_user_trivia_response(interaction.guild_id,interaction.user.id,interaction.custom_id)
+                await set_user_trivia_response(interaction.guild_id,interaction.user.id,interaction.custom_id,interaction.user.name)
                 await set_user_value(interaction.guild_id,interaction.user.id,"name",interaction.user.name)
                 await save()
             button.callback = button_example
@@ -108,9 +110,9 @@ async def process_day(d):
             answer = globals()['questions'][str(date.today() - timedelta(days=1))]['correct_answer']
             letter = ["A","B","C","D","E"][globals()['questions'][str(date.today() - timedelta(days=1))]['answers'].index(answer)]
             for u in d['what_users_said']:
-                if d['what_users_said'][u] == answer:
+                if d['what_users_said'][u]["val"] == answer:
                     gotit += 1
-                    correct_user_list.append(" <@" + str(u) + ">")
+                    correct_user_list.append(" **" + str(d['what_users_said'][u]["name"]) + "**")
                     await set_user_value(d['guild'],u,"correct",await get_user_value(d['guild'],u,"correct") + 1)
                 else:
                     await set_user_value(d['guild'],u,"incorrect",await get_user_value(d['guild'],u,"incorrect") + 1)
@@ -147,7 +149,7 @@ async def create_guild(g,a,b):
     return dict
 
 @bot.slash_command(name="setchannel",description="Set the trivia channel")
-@option("channel",discord.TextChannel,description="The channel to set as the counting channel",required=False,channel_types=[discord.ChannelType.text, discord.ChannelType.voice, discord.ChannelType.private, discord.ChannelType.group, discord.ChannelType.news, discord.ChannelType.news_thread, discord.ChannelType.public_thread, discord.ChannelType.private_thread, discord.ChannelType.stage_voice])
+@option("channel",discord.TextChannel,description="The channel to set as the trivia channel",required=False,channel_types=[discord.ChannelType.text, discord.ChannelType.voice, discord.ChannelType.private, discord.ChannelType.group, discord.ChannelType.news, discord.ChannelType.news_thread, discord.ChannelType.public_thread, discord.ChannelType.private_thread, discord.ChannelType.stage_voice])
 async def set_channel(ctx,channel):
     nchannel = channel if channel is not None else ctx.channel
     await set_value(ctx.guild.id,"channel",nchannel.id)
@@ -224,21 +226,9 @@ async def user_data(ctx, user: discord.User):
     embed.description = "**User data for " + u.name + ":**\nCorrect: **" + str(c) + "**\nIncorrect: **" + str(i) + "**\nPercentage: **" + str(p) + "%**"
     await ctx.respond(embed=embed)
 
-# @bot.slash_command(name="debugasync",description="DEBUG")
-# @option("code",str,description="Why would I give a description?")
-# async def set_channel(ctx,code):
-#     await eval(code)
-#     await ctx.respond("Ran the code " + code)
-
-# @bot.slash_command(name="debug",description="DEBUG")
-# @option("code",str,description="Why would I give a description?")
-# async def set_channel(ctx,code):
-#     eval(code)
-#     await ctx.respond("Ran the code " + code)
-
-async def set_user_trivia_response(g,u,w):
+async def set_user_trivia_response(g,u,w,n):
     dict = await get_value(g,"what_users_said")
-    dict[u] = w
+    dict[u] = {"val":w,"name":n}
     await set_value(g,"what_users_said",dict)
 
 async def get_user_trivia_response(g,u):
