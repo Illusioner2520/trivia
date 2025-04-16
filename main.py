@@ -344,14 +344,17 @@ async def set_user_value(g,u,a,b):
     new_user = await create_user(g,u,a,b)
     return new_user[a]
 
-async def execute_periodically(interval):
+async def execute_periodically():
     while True:
         await hourly_code()
-        await asyncio.sleep(interval)
+        now = datetime.datetime.now()
+        midnight = datetime.datetime.combine(now.date() + datetime.timedelta(days=1), datetime.time.min)
+        seconds_to_midnight = (midnight - now).total_seconds()
+        await asyncio.sleep(seconds_to_midnight)
 
 @bot.listen()
 async def on_ready():
-    bot.loop.create_task(execute_periodically(3600))
+    bot.loop.create_task(execute_periodically())
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.playing, name="trivia games"))
 
 bot.run("[TOKEN]")
