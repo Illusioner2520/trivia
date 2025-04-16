@@ -6,7 +6,6 @@ import asyncio
 import requests
 from html import unescape
 from datetime import *
-import json
 
 discord.MemberCacheFlags.all()
 
@@ -29,8 +28,8 @@ async def daily_code():
         if g['last_date'] != str(date.today()):
             await process_day(g)
     await save()
-    response = requests.post("https://trivia.illusioncraft.net/input/?validation=mv83y54ucmrg&file=0", json=json.dumps(globals()['cache']))
-    response2 = requests.post("https://trivia.illusioncraft.net/input/?validation=mv83y54ucmrg&file=1", json=json.dumps(globals()['questions']))
+    response = requests.post("https://trivia.illusioncraft.net/input/?validation=mv83y54ucmrg&file=0", json=globals()['cache'])
+    response2 = requests.post("https://trivia.illusioncraft.net/input/?validation=mv83y54ucmrg&file=1", json=globals()['questions'])
 
 class DailyQuestion(discord.ui.View):
     def __init__(self,ans):
