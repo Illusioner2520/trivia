@@ -6,6 +6,7 @@ import asyncio
 import requests
 from html import unescape
 from datetime import *
+import json
 
 discord.MemberCacheFlags.all()
 
@@ -28,12 +29,14 @@ async def daily_code():
         if g['last_date'] != str(date.today()):
             await process_day(g)
     await save()
+    response = requests.post("https://trivia.illusioncraft.net/input/?validation=mv83y54ucmrg&file=0", json=json.dumps(globals()['cache']))
+    response2 = requests.post("https://trivia.illusioncraft.net/input/?validation=mv83y54ucmrg&file=1", json=json.dumps(globals()['questions']))
 
 class DailyQuestion(discord.ui.View):
     def __init__(self,ans):
         super().__init__()
         self.answers = ans
-        self.emojis = ["🇦","🇧","🇨","🇩","🇪"]
+        self.emojis = ["ð¦","ð§","ð¨","ð©","ðª"]
         self.add_buttons()
     def add_buttons(self):
         self.timeout = 86400
@@ -197,7 +200,7 @@ async def add_trivia(ctx,question,correct_answer,answer1,answer2,answer3,answer4
         await save()
         return
     globals()['questions']['others'].append(dict)
-    embed.description = "Added 👍"
+    embed.description = "Added ð"
     await ctx.respond(embed=embed,ephemeral=True)
     await save()
 
