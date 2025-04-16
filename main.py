@@ -21,7 +21,7 @@ global questions
 c = f.read()
 globals()['questions'] = [] if c == "" else ast.literal_eval(c)
 
-async def hourly_code():
+async def daily_code():
     if len(globals()['questions']['others']) <= 2:
         await fetch_new_questions()
     for g in globals()['cache']:
@@ -346,7 +346,7 @@ async def set_user_value(g,u,a,b):
 
 async def execute_periodically():
     while True:
-        await hourly_code()
+        await daily_code()
         now = datetime.datetime.now()
         midnight = datetime.datetime.combine(now.date() + datetime.timedelta(days=1), datetime.time.min)
         seconds_to_midnight = (midnight - now).total_seconds()
