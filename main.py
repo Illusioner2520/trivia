@@ -350,7 +350,7 @@ async def execute_periodically():
         now = datetime.datetime.now()
         midnight = datetime.datetime.combine(now.date() + datetime.timedelta(days=1), datetime.time.min)
         seconds_to_midnight = (midnight - now).total_seconds()
-        await asyncio.sleep(seconds_to_midnight)
+        await asyncio.sleep(seconds_to_midnight + 30)
 
 @bot.listen()
 async def on_ready():
