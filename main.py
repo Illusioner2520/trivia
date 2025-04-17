@@ -62,7 +62,7 @@ class DailyQuestion(discord.ui.View):
             self.add_item(button)
 
 @bot.slash_command(name="leaderboard",description="Display a leaderboard")
-@option("leaderboard",description="Leaderboard type",choices=["Correct","Incorrect","Percentage","Current Streak","Longest Streak"])
+@option("leaderboard",description="Leaderboard type",choices=["Correct","Incorrect","Percentage","Current Streak","Longest Streak","Total Questions Answered"])
 async def leaderboard(ctx,leaderboard):
     embed = await new_embed()
     embed.description = "Leaderboard for `" + ctx.guild.name + "` (" + leaderboard + ")"
@@ -77,12 +77,15 @@ async def leaderboard(ctx,leaderboard):
         us.sort(key=ss)
     elif leaderboard == "Longest Streak":
         us.sort(key=sl)
+    elif leaderboard == "Total Questions Answered":
+        us.sort(key=tq)
     for v in range(0,len(us)):
         if us[v]["name"] == "Unknown User":
             continue
         t = str(us[v]["correct"] if leaderboard == "Correct" else us[v]["incorrect"])
         t = str(us[v]["streak"]) if leaderboard == "Current Streak" else t
         t = str(us[v]["longest_streak"]) if leaderboard == "Longest Streak" else t
+        t = str(us[v]["correct"] + us[v]["incorrect"]) if leaderboard == "Total Questions Answered" else t
         if leaderboard == "Percentage":
             t = str(round(us[v]["correct"] / (us[v]["correct"] + us[v]["incorrect"]) * 100,2)) + "%"
         embed.description += "\n**" + str(v + 1) + ".** " + us[v]["name"] + ": **" + t + "**"
@@ -100,6 +103,8 @@ def sp(a):
   if (a["name"] == "Unknown User"):
       return 0
   return -(a["correct"] / (a["correct"] + a["incorrect"]))
+def tq(a):
+  return -(a["correct"] + a["incorrect"])
 
 async def process_day(d):
     if d['channel'] == 0:
@@ -119,6 +124,7 @@ async def process_day(d):
             maxl = len(d['what_users_said'])
             gotit = 0
             correct_user_list = []
+            correct_user_ids = []
             answer = globals()['questions'][str(date.today() - timedelta(days=1))]['correct_answer']
             letter = ["A","B","C","D","E"][globals()['questions'][str(date.today() - timedelta(days=1))]['answers'].index(answer)]
             dontclearstreak = []
@@ -127,6 +133,7 @@ async def process_day(d):
                     gotit += 1
                     new_streak = await get_user_value(d['guild'],u,"streak") + 1
                     correct_user_list.append(" **" + str(d['what_users_said'][u]["name"]) + "**")
+                    correct_user_ids.append(u)
                     await set_user_value(d['guild'],u,"correct",await get_user_value(d['guild'],u,"correct") + 1)
                     await set_user_value(d['guild'],u,"streak",new_streak)
                     await set_user_value(d['guild'],u,"longest_streak",max(new_streak,await get_user_value(d['guild'],u,"longest_streak")))
@@ -141,6 +148,9 @@ async def process_day(d):
             gjt = "\nGood job to" + ",".join(correct_user_list) if len(correct_user_list) > 0 else ""
             msg = "The correct answer was " + letter + ": " + answer + "!\n**" + str(percent) + "%** got it! **(" + str(gotit) + "/" + str(maxl) + ")**" + gjt
             await set_value(d['guild'],"what_users_said",{})
+            temp = await get_value(d['guild'],"previous_days")
+            temp[str(date.today() - timedelta(days=1)] = {"correct":gotit,"total":maxl,"users":correct_user_ids}
+            await set_value(d['guild'],"previous_days",temp)
             embed = await new_embed()
             embed.description = msg
             await channel.send(embed=embed,reference=message)
