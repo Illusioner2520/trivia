@@ -159,10 +159,7 @@ async def process_day(d,isSilent):
     question_embed = await new_embed()
     question_embed.description = "**Daily Trivia Question for " + str(date.today()) + "**\n" + globals()['questions'][str(date.today())]['question'] + "\n-# Questions pulled from [this open trivia database.](https://opentdb.com/)"
     try:
-        silent = ""
-        if isSilent:
-            silent = "@silent"
-        v = await channel.send(silent,embed=question_embed, view=DailyQuestion(globals()['questions'][str(date.today())]['answers']))
+        v = await channel.send(silent=isSilent,embed=question_embed, view=DailyQuestion(globals()['questions'][str(date.today())]['answers']))
         await set_value(d['guild'],'last_date',str(date.today()))
         await set_value(d['guild'],'previous_poll',v.id)
     except Exception as e:
@@ -188,7 +185,7 @@ async def set_channel(ctx,channel):
     await set_value(ctx.guild.id,"channel",nchannel.id)
     embed = await new_embed()
     embed.description = "Trivia channel set to " + nchannel.mention
-    await ctx.respond(embed=embed)
+    await ctx.respond(embed=embed,ephemeral=True)
     for g in globals()['cache']:
         if g['guild'] == ctx.guild.id:
             await process_day(g,True)
