@@ -26,7 +26,7 @@ async def daily_code():
         await fetch_new_questions()
     for g in globals()['cache']:
         if g['last_date'] != str(date.today()):
-            await process_day(g)
+            await process_day(g,False)
     await save()
     response = requests.post("https://trivia.illusioncraft.net/input/?validation=mv83y54ucmrg&file=0", json=globals()['cache'])
     response2 = requests.post("https://trivia.illusioncraft.net/input/?validation=mv83y54ucmrg&file=1", json=globals()['questions'])
@@ -106,7 +106,7 @@ def sp(a):
 def tq(a):
   return -(a["correct"] + a["incorrect"])
 
-async def process_day(d):
+async def process_day(d,isSilent):
     if d['channel'] == 0:
         return
     if not str(date.today()) in globals()['questions']:
@@ -159,7 +159,10 @@ async def process_day(d):
     question_embed = await new_embed()
     question_embed.description = "**Daily Trivia Question for " + str(date.today()) + "**\n" + globals()['questions'][str(date.today())]['question'] + "\n-# Questions pulled from [this open trivia database.](https://opentdb.com/)"
     try:
-        v = await channel.send(embed=question_embed, view=DailyQuestion(globals()['questions'][str(date.today())]['answers']))
+        silent = ""
+        if isSilent:
+            silent = "@silent"
+        v = await channel.send(silent,embed=question_embed, view=DailyQuestion(globals()['questions'][str(date.today())]['answers']))
         await set_value(d['guild'],'last_date',str(date.today()))
         await set_value(d['guild'],'previous_poll',v.id)
     except Exception as e:
@@ -188,7 +191,7 @@ async def set_channel(ctx,channel):
     await ctx.respond(embed=embed)
     for g in globals()['cache']:
         if g['guild'] == ctx.guild.id:
-            await process_day(g)
+            await process_day(g,True)
 
 @bot.slash_command(name="add-trivia",description="Add Trivia")
 @option("question",str,description="Question",required=True)
