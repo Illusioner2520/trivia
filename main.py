@@ -149,7 +149,7 @@ async def process_day(d):
             msg = "The correct answer was " + letter + ": " + answer + "!\n**" + str(percent) + "%** got it! **(" + str(gotit) + "/" + str(maxl) + ")**" + gjt
             await set_value(d['guild'],"what_users_said",{})
             temp = await get_value(d['guild'],"previous_days")
-            temp[str(date.today() - timedelta(days=1))] = {"correct":gotit,"total":maxl,"users":correct_user_ids}
+            temp[str(date.today() - timedelta(days=1))] = {"correct":gotit,"total":maxl,"correct_users":correct_user_ids}
             await set_value(d['guild'],"previous_days",temp)
             embed = await new_embed()
             embed.description = msg
