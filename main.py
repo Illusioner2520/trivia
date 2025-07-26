@@ -28,8 +28,8 @@ async def daily_code():
         if g['last_date'] != str(date.today()):
             await process_day(g,False)
     await save()
-    response = requests.post("https://trivia.illusioncraft.net/input/?validation=[VALIDATION]&file=0", json=globals()['cache'])
-    response2 = requests.post("https://trivia.illusioncraft.net/input/?validation=[VALIDATION]&file=1", json=globals()['questions'])
+    # response = requests.post("https://trivia.illusioncraft.net/input/?validation=[VALIDATION]&file=0", json=globals()['cache'])
+    # response2 = requests.post("https://trivia.illusioncraft.net/input/?validation=[VALIDATION]&file=1", json=globals()['questions'])
 
 class DailyQuestion(discord.ui.View):
     def __init__(self,ans):
