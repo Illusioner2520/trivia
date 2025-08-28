@@ -11,6 +11,8 @@ discord.MemberCacheFlags.all()
 
 bot = discord.Bot(intents=discord.Intents.all())
 
+has_started = False
+
 f = open("save.txt", "r", encoding='utf-8')
 global cache
 c = f.read()
@@ -28,8 +30,6 @@ async def daily_code():
         if g['last_date'] != str(date.today()):
             await process_day(g,False)
     await save()
-    # response = requests.post("https://trivia.illusioncraft.net/input/?validation=[VALIDATION]&file=0", json=globals()['cache'])
-    # response2 = requests.post("https://trivia.illusioncraft.net/input/?validation=[VALIDATION]&file=1", json=globals()['questions'])
 
 class DailyQuestion(discord.ui.View):
     def __init__(self,ans):
@@ -366,7 +366,10 @@ async def execute_periodically():
 
 @bot.listen()
 async def on_ready():
-    bot.loop.create_task(execute_periodically())
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.playing, name="trivia games"))
+    global has_started
+    if not has_started:
+        has_started = True
+        bot.loop.create_task(execute_periodically())
+        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.playing, name="trivia games"))
 
 bot.run("[TOKEN]")
