@@ -389,7 +389,7 @@ async def debug(ctx,type):
     guild = Guild(ctx.guild.id)
     guesses = guild.get_user_guesses()
     if type == "Guesses":
-        embed.description = "**Today's Guesses**\n" + "\n".join(list(map(lambda g: g.user.name + ": **" + g.guess + "**", guesses)))
+        embed.description = "**Today's Guesses**\n" + "\n".join(list(map(lambda g: cleanse_username(g.user.name) + ": **" + g.guess + "**", guesses)))
         await ctx.respond(embed=embed,ephemeral=True)
         return
 
